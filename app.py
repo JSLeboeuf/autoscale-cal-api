@@ -1,4 +1,4 @@
- from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify
   from flask_cors import CORS
   import requests
   import os
@@ -18,11 +18,8 @@
   def health():
       return jsonify({'status': 'healthy'})
 
-  @app.route('/check-availability', methods=['POST', 'OPTIONS'])
+  @app.route('/check-availability', methods=['POST'])
   def check_availability():
-      if request.method == 'OPTIONS':
-          return '', 200
-
       try:
           data = request.json
           response = requests.get(
@@ -51,17 +48,13 @@
   available"
           })
       except Exception as e:
-          print(f"Error: {str(e)}")
           return jsonify({
               'success': False,
               'message': "Let me send you the booking link: cal.com/autoscaleai/ai-demo"
           })
 
-  @app.route('/create-booking', methods=['POST', 'OPTIONS'])
+  @app.route('/create-booking', methods=['POST'])
   def create_booking():
-      if request.method == 'OPTIONS':
-          return '', 200
-
       try:
           data = request.json
           response = requests.post(
@@ -84,8 +77,11 @@
               'message': f"Perfect! Demo booked. Confirmation sent to {data['email']}!"
           })
       except Exception as e:
-          print(f"Booking error: {str(e)}")
           return jsonify({
               'success': False,
               'message': "Here's the link: cal.com/autoscaleai/ai-demo"
           })
+
+  if __name__ == '__main__':
+      port = int(os.environ.get('PORT', 8080))
+      app.run(host='0.0.0.0', port=port)
