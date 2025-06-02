@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+ from flask import Flask, request, jsonify
   from flask_cors import CORS
   import requests
   import os
@@ -10,20 +10,27 @@ from flask import Flask, request, jsonify
   CAL_API_KEY = os.environ.get('CAL_API_KEY', 'cal_live_e7f24f1eab131ba927de8e70b8912da1')
   CAL_EVENT_TYPE_ID = os.environ.get('CAL_EVENT_TYPE_ID', '2575862')
 
-  @app.route('/health', methods=['GET'])
+  @app.route('/')
+  def home():
+      return jsonify({'message': 'Autoscale AI Cal.com API is running!'})
+
+  @app.route('/health')
   def health():
       return jsonify({'status': 'healthy'})
 
-  @app.route('/check-availability', methods=['POST'])
+  @app.route('/check-availability', methods=['POST', 'OPTIONS'])
   def check_availability():
+      if request.method == 'OPTIONS':
+          return '', 200
+
       try:
           data = request.json
           response = requests.get(
               "https://api.cal.com/v1/availability",
               params={
                   'eventTypeId': CAL_EVENT_TYPE_ID,
-                  'startTime': data['dateFrom'],
-                  'endTime': data['dateTo']
+                  'startTime': data.get('dateFrom'),
+                  'endTime': data.get('dateTo')
               },
               headers={'Authorization': f'Bearer {CAL_API_KEY}'}
           )
@@ -40,18 +47,21 @@ from flask import Flask, request, jsonify
           return jsonify({
               'success': True,
               'slots': formatted,
-              'message': f"I have {len(formatted)} slots available. " +
-                        (f"How about {formatted[0]['display']}?" if formatted else "Let me check
-  next week.")
+              'message': f"I have {len(formatted)} slots available." if formatted else "No slots
+  available"
           })
       except Exception as e:
+          print(f"Error: {str(e)}")
           return jsonify({
               'success': False,
               'message': "Let me send you the booking link: cal.com/autoscaleai/ai-demo"
           })
 
-  @app.route('/create-booking', methods=['POST'])
+  @app.route('/create-booking', methods=['POST', 'OPTIONS'])
   def create_booking():
+      if request.method == 'OPTIONS':
+          return '', 200
+
       try:
           data = request.json
           response = requests.post(
@@ -62,7 +72,7 @@ from flask import Flask, request, jsonify
                   'responses': {
                       'name': data['name'],
                       'email': data['email'],
-                      'phone': data['phone']
+                      'phone': data.get('phone', '')
                   },
                   'timeZone': 'America/New_York'
               },
@@ -71,13 +81,11 @@ from flask import Flask, request, jsonify
 
           return jsonify({
               'success': True,
-              'message': f"Perfect! Demo booked and confirmation sent to {data['email']}!"
+              'message': f"Perfect! Demo booked. Confirmation sent to {data['email']}!"
           })
       except Exception as e:
+          print(f"Booking error: {str(e)}")
           return jsonify({
               'success': False,
               'message': "Here's the link: cal.com/autoscaleai/ai-demo"
           })
-
-  if __name__ == '__main__':
-      app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
